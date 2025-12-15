@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>🔍 DiffLens – Text Compare</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+    <div class="app-shell">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">
+                    <h1><span class="icon">🧬</span> DiffLens – Text Compare</h1>
+                    <p>
+                        Real-time diff viewer for links, text blocks, and lists. Dark-mode
+                        native.
+                    </p>
+                </div>
+                <div class="tag-pill">
+                    <span class="tag-pill-dot"></span>
+                    Live compare · Dark only
+                </div>
+            </div>
+
+            <div class="input-grid">
+                <div>
+                    <div class="field-label"><span>Text A</span></div>
+                    <textarea id="textA" placeholder="Paste or type your original text here..."></textarea>
+                </div>
+
+                <div>
+                    <div class="field-label"><span>Text B</span></div>
+                    <textarea id="textB" placeholder="Paste or type your modified text here..."></textarea>
+                </div>
+            </div>
+
+            <div id="outputContainer">
+                <div class="diff-header">
+                    <div class="diff-header-title">
+                        <span class="dot"></span>
+                        <span>Differences</span>
+                    </div>
+                </div>
+
+                <div class="diff-container" id="diffContainer">
+                    <div class="diff-column">
+                        <div class="diff-label"><span>Text A</span></div>
+                        <div class="box" id="resultA"></div>
+                    </div>
+                    <div class="diff-column">
+                        <div class="diff-label"><span>Text B</span></div>
+                        <div class="box" id="resultB"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button id="backToTop">⬆</button>
+    <p class="footer">This tool is created by <u>Utkarsh</u> just for fun 😄</p>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
