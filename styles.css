@@ -157,9 +157,18 @@ textarea {
     line-height: 1.55;
     max-height: 360px;
     overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
     white-space: pre-wrap;
     word-break: break-word;
 }
+
+/* Allow tooltips to escape scrolling container */
+.box span[class^="word-"] {
+    position: relative;
+    overflow: visible;
+}
+
 
 /* Primary highlights */
 .word-added {
@@ -183,6 +192,39 @@ textarea {
 .word-removed.muted {
     opacity: 0.45;
     filter: saturate(0.7);
+}
+
+/* Tooltip base */
+.word-added,
+.word-removed {
+    position: relative;
+    /* REQUIRED for tooltip positioning */
+    cursor: pointer;
+}
+
+.word-added:hover,
+.word-removed:hover {
+    filter: brightness(1.1);
+}
+
+#diffTooltip {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+
+    background: rgba(15, 23, 42, 0.95);
+    color: #e5e7eb;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 6px;
+
+    padding: 6px 10px;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    white-space: nowrap;
+
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.12s ease, transform 0.12s ease;
 }
 
 /* Back to top */

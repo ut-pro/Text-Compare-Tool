@@ -29,21 +29,25 @@ function diffWithDMP(a, b) {
 /* Render diff with perspective */
 function renderDiff(diffParts, perspective) {
     return diffParts.map(part => {
+
         if (part.type === "equal") return part.text;
 
         if (part.type === "removed") {
             const cls = perspective === "A"
                 ? "word-removed"
                 : "word-removed muted";
-            return `<span class="${cls}">${part.text}</span>`;
+
+            return `<span class="${cls}" data-tooltip="Available in TextA only">${part.text}</span>`;
         }
 
         if (part.type === "added") {
             const cls = perspective === "B"
                 ? "word-added"
                 : "word-added muted";
-            return `<span class="${cls}">${part.text}</span>`;
+
+            return `<span class="${cls}" data-tooltip="Available in TextB only">${part.text}</span>`;
         }
+
     }).join("");
 }
 
@@ -95,6 +99,48 @@ let t;
         t = setTimeout(compare, 220);
     })
 );
+
+const tooltip = document.getElementById("diffTooltip");
+
+function showTooltip(e) {
+    const text = e.target.getAttribute("data-tooltip");
+    if (!text) return;
+
+    tooltip.textContent = text;
+    tooltip.style.opacity = "1";
+    tooltip.style.transform = "translateY(0)";
+}
+
+function moveTooltip(e) {
+    tooltip.style.left = e.clientX + 12 + "px";
+    tooltip.style.top = e.clientY + 12 + "px";
+}
+
+function hideTooltip() {
+    tooltip.style.opacity = "0";
+    tooltip.style.transform = "translateY(4px)";
+}
+
+// Delegate events (important because spans are dynamic)
+document.addEventListener("mouseover", (e) => {
+    if (e.target.classList.contains("word-added") ||
+        e.target.classList.contains("word-removed")) {
+        showTooltip(e);
+    }
+});
+
+document.addEventListener("mousemove", (e) => {
+    if (tooltip.style.opacity === "1") {
+        moveTooltip(e);
+    }
+});
+
+document.addEventListener("mouseout", (e) => {
+    if (e.target.classList.contains("word-added") ||
+        e.target.classList.contains("word-removed")) {
+        hideTooltip();
+    }
+});
 
 /* Back to top */
 const backToTop = document.getElementById("backToTop");
