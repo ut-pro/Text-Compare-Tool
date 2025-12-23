@@ -5,7 +5,9 @@ const diffContainer = document.getElementById("diffContainer");
 const resultA = document.getElementById("resultA");
 const resultB = document.getElementById("resultB");
 const identicalMsg = document.getElementById("identicalMsg");
+
 const diffStats = document.getElementById("diffStats");
+const diffLegend = document.getElementById("diffLegend");
 const addedCountEl = document.getElementById("addedCount");
 const removedCountEl = document.getElementById("removedCount");
 
@@ -19,21 +21,31 @@ function escapeHtml(str) {
         .replace(/>/g, "&gt;");
 }
 
-/* DMP diff → structured */
+/* DMP diff → structured + COUNTS */
 function diffWithDMP(a, b) {
     const dmp = new diff_match_patch();
     const diffs = dmp.diff_main(a, b);
     dmp.diff_cleanupSemantic(diffs);
 
-    return diffs.map(([op, text]) => ({
-        type: op === 0 ? "equal" : op === -1 ? "removed" : "added",
-        text: escapeHtml(text)
-    }));
+    let added = 0;
+    let removed = 0;
+
+    const parts = diffs.map(([op, text]) => {
+        if (op === 1) added++;
+        if (op === -1) removed++;
+
+        return {
+            type: op === 0 ? "equal" : op === -1 ? "removed" : "added",
+            text: escapeHtml(text)
+        };
+    });
+
+    return { parts, added, removed };
 }
 
 /* Render diff with perspective */
-function renderDiff(diffParts, perspective) {
-    return diffParts.map(part => {
+function renderDiff(parts, perspective) {
+    return parts.map(part => {
 
         if (part.type === "equal") return part.text;
 
@@ -42,7 +54,7 @@ function renderDiff(diffParts, perspective) {
                 ? "word-removed"
                 : "word-removed muted";
 
-            return `<span class="${cls}" data-tooltip="Available in TextA only">${part.text}</span>`;
+            return `<span class="${cls}" data-tooltip="Available in Text A only">${part.text}</span>`;
         }
 
         if (part.type === "added") {
@@ -50,7 +62,7 @@ function renderDiff(diffParts, perspective) {
                 ? "word-added"
                 : "word-added muted";
 
-            return `<span class="${cls}" data-tooltip="Available in TextB only">${part.text}</span>`;
+            return `<span class="${cls}" data-tooltip="Available in Text B only">${part.text}</span>`;
         }
 
     }).join("");
@@ -61,6 +73,11 @@ function compare() {
     const a = textA.value;
     const b = textB.value;
 
+    // Reset UI
+    addedCountEl.textContent = "0";
+    removedCountEl.textContent = "0";
+    diffStats.hidden = true;
+
     if (!a.trim() && !b.trim()) {
         output.style.display = "none";
         hasAutoScrolled = false;
@@ -70,11 +87,12 @@ function compare() {
     output.style.display = "block";
     identicalMsg.hidden = true;
     diffContainer.style.display = "grid";
+    diffLegend.style.display = "flex";
 
     if (a.trim() === b.trim()) {
         diffContainer.style.display = "none";
+        diffLegend.style.display = "none";
         identicalMsg.hidden = false;
-        diffStats.hidden = true;
         return;
     }
 
@@ -85,45 +103,38 @@ function compare() {
     const outA = [];
     const outB = [];
 
-    let addedCount = 0;
-    let removedCount = 0;
+    let totalAdded = 0;
+    let totalRemoved = 0;
 
     for (let i = 0; i < max; i++) {
         const la = linesA[i] || "";
         const lb = linesB[i] || "";
 
-        const diffParts = diffWithDMP(la, lb);
-        diffParts.forEach(part => {
-            if (part.type === "added") addedCount++;
-            if (part.type === "removed") removedCount++;
-        });
-        outA.push(renderDiff(diffParts, "A"));
-        outB.push(renderDiff(diffParts, "B"));
+        const diff = diffWithDMP(la, lb);
+
+        totalAdded += diff.added;
+        totalRemoved += diff.removed;
+
+        outA.push(renderDiff(diff.parts, "A"));
+        outB.push(renderDiff(diff.parts, "B"));
     }
 
     resultA.innerHTML = outA.join("\n");
     resultB.innerHTML = outB.join("\n");
 
-    if (addedCount > 0 || removedCount > 0) {
-        addedCountEl.textContent = addedCount;
-        removedCountEl.textContent = removedCount;
+    if (totalAdded > 0 || totalRemoved > 0) {
+        addedCountEl.textContent = totalAdded;
+        removedCountEl.textContent = totalRemoved;
         diffStats.hidden = false;
-    } else {
-        diffStats.hidden = true;
     }
 
-
-    // Auto-scroll only once (UX-friendly)
+    // Auto-scroll once
     if (!hasAutoScrolled) {
         requestAnimationFrame(() => {
-            output.scrollIntoView({
-                behavior: "smooth",
-                block: "start"
-            });
+            output.scrollIntoView({ behavior: "smooth", block: "start" });
             hasAutoScrolled = true;
         });
     }
-
 }
 
 /* Debounced auto-compare */
@@ -135,45 +146,28 @@ let t;
     })
 );
 
+/* Tooltip logic */
 const tooltip = document.getElementById("diffTooltip");
 
-function showTooltip(e) {
-    const text = e.target.getAttribute("data-tooltip");
-    if (!text) return;
-
-    tooltip.textContent = text;
-    tooltip.style.opacity = "1";
-    tooltip.style.transform = "translateY(0)";
-}
-
-function moveTooltip(e) {
-    tooltip.style.left = e.clientX + 12 + "px";
-    tooltip.style.top = e.clientY + 12 + "px";
-}
-
-function hideTooltip() {
-    tooltip.style.opacity = "0";
-    tooltip.style.transform = "translateY(4px)";
-}
-
-// Delegate events (important because spans are dynamic)
 document.addEventListener("mouseover", (e) => {
     if (e.target.classList.contains("word-added") ||
         e.target.classList.contains("word-removed")) {
-        showTooltip(e);
+        tooltip.textContent = e.target.dataset.tooltip;
+        tooltip.style.opacity = "1";
     }
 });
 
 document.addEventListener("mousemove", (e) => {
     if (tooltip.style.opacity === "1") {
-        moveTooltip(e);
+        tooltip.style.left = e.clientX + 12 + "px";
+        tooltip.style.top = e.clientY + 12 + "px";
     }
 });
 
 document.addEventListener("mouseout", (e) => {
     if (e.target.classList.contains("word-added") ||
         e.target.classList.contains("word-removed")) {
-        hideTooltip();
+        tooltip.style.opacity = "0";
     }
 });
 

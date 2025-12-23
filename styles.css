@@ -130,6 +130,51 @@ textarea {
     margin-bottom: 12px;
 }
 
+.diffLegend {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 10px 16px;
+    margin-top: 12px;
+    font-size: 0.75rem;
+    padding-top: 10px;
+    color: var(--text-muted);
+}
+
+.legend-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.green-light {
+    color: var(--green-text);
+    opacity: 0.6;
+}
+
+.red-light {
+    color: var(--red-text);
+    opacity: 0.6;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.legend-item.green {
+    color: var(--green-text);
+}
+
+.legend-item.red {
+    color: var(--red-text);
+}
+
+.legend-item.muted {
+    opacity: 0.75;
+}
+
 .diff-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
