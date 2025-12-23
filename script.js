@@ -5,6 +5,11 @@ const diffContainer = document.getElementById("diffContainer");
 const resultA = document.getElementById("resultA");
 const resultB = document.getElementById("resultB");
 const identicalMsg = document.getElementById("identicalMsg");
+const diffStats = document.getElementById("diffStats");
+const addedCountEl = document.getElementById("addedCount");
+const removedCountEl = document.getElementById("removedCount");
+
+let hasAutoScrolled = false;
 
 /* Escape HTML */
 function escapeHtml(str) {
@@ -58,6 +63,7 @@ function compare() {
 
     if (!a.trim() && !b.trim()) {
         output.style.display = "none";
+        hasAutoScrolled = false;
         return;
     }
 
@@ -68,6 +74,7 @@ function compare() {
     if (a.trim() === b.trim()) {
         diffContainer.style.display = "none";
         identicalMsg.hidden = false;
+        diffStats.hidden = true;
         return;
     }
 
@@ -78,17 +85,45 @@ function compare() {
     const outA = [];
     const outB = [];
 
+    let addedCount = 0;
+    let removedCount = 0;
+
     for (let i = 0; i < max; i++) {
         const la = linesA[i] || "";
         const lb = linesB[i] || "";
 
         const diffParts = diffWithDMP(la, lb);
+        diffParts.forEach(part => {
+            if (part.type === "added") addedCount++;
+            if (part.type === "removed") removedCount++;
+        });
         outA.push(renderDiff(diffParts, "A"));
         outB.push(renderDiff(diffParts, "B"));
     }
 
     resultA.innerHTML = outA.join("\n");
     resultB.innerHTML = outB.join("\n");
+
+    if (addedCount > 0 || removedCount > 0) {
+        addedCountEl.textContent = addedCount;
+        removedCountEl.textContent = removedCount;
+        diffStats.hidden = false;
+    } else {
+        diffStats.hidden = true;
+    }
+
+
+    // Auto-scroll only once (UX-friendly)
+    if (!hasAutoScrolled) {
+        requestAnimationFrame(() => {
+            output.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+            hasAutoScrolled = true;
+        });
+    }
+
 }
 
 /* Debounced auto-compare */

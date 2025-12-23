@@ -142,6 +142,40 @@ textarea {
     }
 }
 
+/* Diff stats (Added / Removed count) */
+.diff-stats {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 0.75rem;
+}
+
+/* Individual stat pills */
+.diff-stats .stat {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+}
+
+/* Added */
+.diff-stats .added {
+    color: var(--green-text);
+    border-color: rgba(34, 197, 94, 0.6);
+}
+
+/* Removed */
+.diff-stats .removed {
+    color: var(--red-text);
+    border-color: rgba(248, 113, 113, 0.6);
+}
+
+
 .diff-label {
     font-size: .78rem;
     color: var(--text-muted);
@@ -170,21 +204,22 @@ textarea {
 }
 
 
-/* Primary highlights */
+/* Added content */
 .word-added {
-    background: var(--green-bg);
+    background: rgba(34, 197, 94, 0.12);
     color: var(--green-text);
-    border: 1px solid var(--green-border);
-    border-radius: 4px;
-    padding: 0 2px;
+    border-left: 3px solid rgba(34, 197, 94, 0.9);
+    padding: 1px 4px;
+    border-radius: 3px;
 }
 
+/* Removed content */
 .word-removed {
-    background: var(--red-bg);
+    background: rgba(248, 113, 113, 0.12);
     color: var(--red-text);
-    border: 1px solid var(--red-border);
-    border-radius: 4px;
-    padding: 0 2px;
+    border-left: 3px solid rgba(248, 113, 113, 0.9);
+    padding: 1px 4px;
+    border-radius: 3px;
 }
 
 /* Muted highlights (secondary perspective) */
@@ -198,13 +233,13 @@ textarea {
 .word-added,
 .word-removed {
     position: relative;
-    /* REQUIRED for tooltip positioning */
     cursor: pointer;
+    transition: background 0.15s ease, filter 0.15s ease;
 }
 
 .word-added:hover,
 .word-removed:hover {
-    filter: brightness(1.1);
+    filter: brightness(1.15);
 }
 
 #diffTooltip {
