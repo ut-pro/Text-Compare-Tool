@@ -12,6 +12,7 @@ const addedCountEl = document.getElementById("addedCount");
 const removedCountEl = document.getElementById("removedCount");
 
 let hasAutoScrolled = false;
+let legentAnimation = false;
 
 /* Escape HTML */
 function escapeHtml(str) {
@@ -89,10 +90,18 @@ function compare() {
     diffContainer.style.display = "grid";
     diffLegend.style.display = "flex";
 
+    if (!legentAnimation) {
+        diffLegend.style.animation = "none";
+        diffLegend.offsetHeight; // force reflow
+        diffLegend.style.animation = "";
+        legentAnimation = true;
+    }
+
     if (a.trim() === b.trim()) {
         diffContainer.style.display = "none";
         diffLegend.style.display = "none";
         identicalMsg.hidden = false;
+        legentAnimation = false;
         return;
     }
 
