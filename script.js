@@ -10,6 +10,7 @@ const diffStats = document.getElementById("diffStats");
 const diffLegend = document.getElementById("diffLegend");
 const addedCountEl = document.getElementById("addedCount");
 const removedCountEl = document.getElementById("removedCount");
+const liveDot = document.querySelector(".sticky-dot");
 
 let hasAutoScrolled = false;
 let legentAnimation = false;
@@ -78,6 +79,8 @@ function compare() {
     addedCountEl.textContent = "0";
     removedCountEl.textContent = "0";
     diffStats.hidden = true;
+    liveDot.classList.remove("is-diff");
+    backToTop.style.display = "none";
 
     if (!a.trim() && !b.trim()) {
         output.style.display = "none";
@@ -135,6 +138,7 @@ function compare() {
         addedCountEl.textContent = totalAdded;
         removedCountEl.textContent = totalRemoved;
         diffStats.hidden = false;
+        liveDot.classList.add("is-diff");
     }
 
     // Auto-scroll once
@@ -183,6 +187,6 @@ document.addEventListener("mouseout", (e) => {
 /* Back to top */
 const backToTop = document.getElementById("backToTop");
 window.addEventListener("scroll", () => {
-    backToTop.style.display = window.scrollY > 250 ? "block" : "none";
+    backToTop.style.display = window.scrollY > 300 ? "flex" : "none";
 });
 backToTop.onclick = () => window.scrollTo({ top: 0, behavior: "smooth" });

@@ -16,19 +16,16 @@
 <body>
     <main class="app-shell">
         <section class="app-card">
-
+            <div class="sticky-note">
+                <span class="sticky-dot"></span>
+                Live Compare
+            </div>
             <header class="app-header">
                 <div class="app-title">
                     <h1 class="logo">
-                        <span class="logo-icon">🔍</span>
-                        TextCompare<span class="logo-plus">+</span>
+                        <span class="logo-icon">🔍</span>TextCompare<span class="logo-plus">+</span>
                     </h1>
                     <p class="subtitle">Compare text changes instantly, with clarity.</p>
-                </div>
-
-                <div class="tag-pill">
-                    <span class="tag-pill-dot"></span>
-                    Live Compare
                 </div>
             </header>
 
@@ -88,7 +85,12 @@
 
     <div id="diffTooltip"></div>
 
-    <button id="backToTop">⬆</button>
+    <button id="backToTop" aria-label="Back to top">
+        <svg viewBox="0 0 24 24" class="backtop-icon">
+            <path d="M12 5l-6 6a1.2 1.2 0 001.7 1.7L11 9.4V19a1 1 0 002 0V9.4l3.3 3.3a1.2 1.2 0 001.7-1.7z"
+                fill="currentColor" />
+        </svg>
+    </button>
 
     <footer class="footer">
         This tool is created by <u>Utkarsh</u> just for fun 😄
