@@ -186,7 +186,18 @@ document.addEventListener("mouseout", (e) => {
 
 /* Back to top */
 const backToTop = document.getElementById("backToTop");
-window.addEventListener("scroll", () => {
-    backToTop.style.display = window.scrollY > 300 ? "flex" : "none";
-});
+function updateBackToTopVisibility() {
+    const hasVerticalScroll =
+        document.documentElement.scrollHeight >
+        document.documentElement.clientHeight;
+
+    const userScrolledDown = window.scrollY > 200;
+
+    backToTop.style.display =
+        hasVerticalScroll && userScrolledDown ? "flex" : "none";
+}
+
+window.addEventListener("scroll", updateBackToTopVisibility);
+window.addEventListener("resize", updateBackToTopVisibility);
 backToTop.onclick = () => window.scrollTo({ top: 0, behavior: "smooth" });
+
