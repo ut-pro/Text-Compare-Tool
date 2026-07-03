@@ -11,193 +11,266 @@ const diffLegend = document.getElementById("diffLegend");
 const addedCountEl = document.getElementById("addedCount");
 const removedCountEl = document.getElementById("removedCount");
 const liveDot = document.querySelector(".sticky-dot");
+const ignoreCaseCheckbox = document.getElementById("ignoreCaseCheckbox");
+const ignoreLineBreaksCheckbox = document.getElementById(
+  "ignoreLineBreaksCheckbox",
+);
+const counterA = document.getElementById("counterA");
+const counterB = document.getElementById("counterB");
 
 let hasAutoScrolled = false;
 let legentAnimation = false;
 
 /* Escape HTML */
 function escapeHtml(str) {
-    return str
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/* Word/char counting — always on raw textarea value, independent of comparison options */
+function countWords(str) {
+  const trimmed = str.trim();
+  return trimmed === "" ? 0 : trimmed.split(/\s+/).length;
+}
+
+function countCharacters(str) {
+  return str.length;
+}
+
+function updateCounter(el, text) {
+  el.textContent = `${countWords(text)} words · ${countCharacters(text)} characters`;
+}
+
+/* Collapse a line break (and surrounding horizontal whitespace) into a single space — comparison only */
+function normalizeLineBreaks(str) {
+  return str.replace(/\s*(?:\r\n|\r|\n)+\s*/g, " ").trim();
 }
 
 /* DMP diff → structured + COUNTS */
-function diffWithDMP(a, b) {
-    const dmp = new diff_match_patch();
-    const diffs = dmp.diff_main(a, b);
-    dmp.diff_cleanupSemantic(diffs);
+function diffWithDMP(a, b, options = {}) {
+  const { ignoreCase = false } = options;
+  const dmp = new diff_match_patch();
 
-    let added = 0;
-    let removed = 0;
+  // Diff lowercased copies when ignoring case, but walk pointers over the
+  // ORIGINAL strings so rendered output keeps the user's real capitalization.
+  const compareA = ignoreCase ? a.toLowerCase() : a;
+  const compareB = ignoreCase ? b.toLowerCase() : b;
 
-    const parts = diffs.map(([op, text]) => {
-        if (op === 1) added++;
-        if (op === -1) removed++;
+  const diffs = dmp.diff_main(compareA, compareB);
+  dmp.diff_cleanupSemantic(diffs);
 
-        return {
-            type: op === 0 ? "equal" : op === -1 ? "removed" : "added",
-            text: escapeHtml(text)
-        };
-    });
+  let added = 0;
+  let removed = 0;
+  let posA = 0;
+  let posB = 0;
 
-    return { parts, added, removed };
+  const parts = diffs.map(([op, text]) => {
+    const len = text.length;
+    let originalA = "";
+    let originalB = "";
+
+    if (op === 0) {
+      originalA = a.slice(posA, posA + len);
+      originalB = b.slice(posB, posB + len);
+      posA += len;
+      posB += len;
+    } else if (op === -1) {
+      removed++;
+      originalA = a.slice(posA, posA + len);
+      posA += len;
+    } else {
+      added++;
+      originalB = b.slice(posB, posB + len);
+      posB += len;
+    }
+
+    return {
+      type: op === 0 ? "equal" : op === -1 ? "removed" : "added",
+      textA: escapeHtml(originalA),
+      textB: escapeHtml(originalB),
+    };
+  });
+
+  return { parts, added, removed };
 }
 
 /* Render diff with perspective */
 function renderDiff(parts, perspective) {
-    return parts.map(part => {
+  return parts
+    .map((part) => {
+      if (part.type === "equal") {
+        // textA/textB only diverge when Ignore Capitalization is on
+        return perspective === "A" ? part.textA : part.textB;
+      }
 
-        if (part.type === "equal") return part.text;
+      if (part.type === "removed") {
+        const cls = perspective === "A" ? "word-removed" : "word-removed muted";
 
-        if (part.type === "removed") {
-            const cls = perspective === "A"
-                ? "word-removed"
-                : "word-removed muted";
+        return `<span class="${cls}" data-tooltip="Available in Text A only">${part.textA}</span>`;
+      }
 
-            return `<span class="${cls}" data-tooltip="Available in Text A only">${part.text}</span>`;
-        }
+      if (part.type === "added") {
+        const cls = perspective === "B" ? "word-added" : "word-added muted";
 
-        if (part.type === "added") {
-            const cls = perspective === "B"
-                ? "word-added"
-                : "word-added muted";
-
-            return `<span class="${cls}" data-tooltip="Available in Text B only">${part.text}</span>`;
-        }
-
-    }).join("");
+        return `<span class="${cls}" data-tooltip="Available in Text B only">${part.textB}</span>`;
+      }
+    })
+    .join("");
 }
 
 /* Main compare */
 function compare() {
-    const a = textA.value;
-    const b = textB.value;
+  const a = textA.value;
+  const b = textB.value;
 
-    // Reset UI
-    addedCountEl.textContent = "0";
-    removedCountEl.textContent = "0";
-    diffStats.hidden = true;
-    liveDot.classList.remove("is-diff");
-    backToTop.style.display = "none";
+  // Reset UI
+  addedCountEl.textContent = "0";
+  removedCountEl.textContent = "0";
+  diffStats.hidden = true;
+  liveDot.classList.remove("is-diff");
+  backToTop.style.display = "none";
 
-    if (!a.trim() && !b.trim()) {
-        output.style.display = "none";
-        hasAutoScrolled = false;
-        return;
-    }
+  if (!a.trim() && !b.trim()) {
+    output.style.display = "none";
+    hasAutoScrolled = false;
+    return;
+  }
 
-    output.style.display = "block";
-    identicalMsg.hidden = true;
-    diffContainer.style.display = "grid";
-    diffLegend.style.display = "flex";
+  output.style.display = "block";
+  identicalMsg.hidden = true;
+  diffContainer.style.display = "grid";
+  diffLegend.style.display = "flex";
 
-    if (!legentAnimation) {
-        diffLegend.style.animation = "none";
-        diffLegend.offsetHeight; // force reflow
-        diffLegend.style.animation = "";
-        legentAnimation = true;
-    }
+  if (!legentAnimation) {
+    diffLegend.style.animation = "none";
+    diffLegend.offsetHeight; // force reflow
+    diffLegend.style.animation = "";
+    legentAnimation = true;
+  }
 
-    if (a.trim() === b.trim()) {
-        diffContainer.style.display = "none";
-        diffLegend.style.display = "none";
-        identicalMsg.hidden = false;
-        legentAnimation = false;
-        return;
-    }
+  const ignoreCase = ignoreCaseCheckbox.checked;
+  const ignoreLineBreaks = ignoreLineBreaksCheckbox.checked;
 
-    const linesA = a.split("\n");
-    const linesB = b.split("\n");
-    const max = Math.max(linesA.length, linesB.length);
+  // Comparison-only normalization — textarea values (a, b) stay untouched
+  const normA = ignoreLineBreaks ? normalizeLineBreaks(a) : a;
+  const normB = ignoreLineBreaks ? normalizeLineBreaks(b) : b;
 
-    const outA = [];
-    const outB = [];
+  const isIdentical = ignoreCase
+    ? normA.trim().toLowerCase() === normB.trim().toLowerCase()
+    : normA.trim() === normB.trim();
 
-    let totalAdded = 0;
-    let totalRemoved = 0;
+  if (isIdentical) {
+    diffContainer.style.display = "none";
+    diffLegend.style.display = "none";
+    identicalMsg.hidden = false;
+    legentAnimation = false;
+    return;
+  }
 
-    for (let i = 0; i < max; i++) {
-        const la = linesA[i] || "";
-        const lb = linesB[i] || "";
+  const linesA = normA.split("\n");
+  const linesB = normB.split("\n");
+  const max = Math.max(linesA.length, linesB.length);
 
-        const diff = diffWithDMP(la, lb);
+  const outA = [];
+  const outB = [];
 
-        totalAdded += diff.added;
-        totalRemoved += diff.removed;
+  let totalAdded = 0;
+  let totalRemoved = 0;
 
-        outA.push(renderDiff(diff.parts, "A"));
-        outB.push(renderDiff(diff.parts, "B"));
-    }
+  for (let i = 0; i < max; i++) {
+    const la = linesA[i] || "";
+    const lb = linesB[i] || "";
 
-    resultA.innerHTML = outA.join("\n");
-    resultB.innerHTML = outB.join("\n");
+    const diff = diffWithDMP(la, lb, { ignoreCase });
 
-    if (totalAdded > 0 || totalRemoved > 0) {
-        addedCountEl.textContent = totalAdded;
-        removedCountEl.textContent = totalRemoved;
-        diffStats.hidden = false;
-        liveDot.classList.add("is-diff");
-    }
+    totalAdded += diff.added;
+    totalRemoved += diff.removed;
 
-    // Auto-scroll once
-    if (!hasAutoScrolled) {
-        requestAnimationFrame(() => {
-            output.scrollIntoView({ behavior: "smooth", block: "start" });
-            hasAutoScrolled = true;
-        });
-    }
+    outA.push(renderDiff(diff.parts, "A"));
+    outB.push(renderDiff(diff.parts, "B"));
+  }
+
+  resultA.innerHTML = outA.join("\n");
+  resultB.innerHTML = outB.join("\n");
+
+  if (totalAdded > 0 || totalRemoved > 0) {
+    addedCountEl.textContent = totalAdded;
+    removedCountEl.textContent = totalRemoved;
+    diffStats.hidden = false;
+    liveDot.classList.add("is-diff");
+  }
+
+  // Auto-scroll once
+  if (!hasAutoScrolled) {
+    requestAnimationFrame(() => {
+      output.scrollIntoView({ behavior: "smooth", block: "start" });
+      hasAutoScrolled = true;
+    });
+  }
 }
 
 /* Debounced auto-compare */
 let t;
-[textA, textB].forEach(el =>
-    el.addEventListener("input", () => {
-        clearTimeout(t);
-        t = setTimeout(compare, 220);
-    })
+const counterMap = new Map([
+  [textA, counterA],
+  [textB, counterB],
+]);
+
+[textA, textB].forEach((el) =>
+  el.addEventListener("input", () => {
+    updateCounter(counterMap.get(el), el.value);
+
+    clearTimeout(t);
+    t = setTimeout(compare, 220);
+  }),
+);
+
+[ignoreCaseCheckbox, ignoreLineBreaksCheckbox].forEach((el) =>
+  el.addEventListener("change", compare),
 );
 
 /* Tooltip logic */
 const tooltip = document.getElementById("diffTooltip");
 
 document.addEventListener("mouseover", (e) => {
-    if (e.target.classList.contains("word-added") ||
-        e.target.classList.contains("word-removed")) {
-        tooltip.textContent = e.target.dataset.tooltip;
-        tooltip.style.opacity = "1";
-    }
+  if (
+    e.target.classList.contains("word-added") ||
+    e.target.classList.contains("word-removed")
+  ) {
+    tooltip.textContent = e.target.dataset.tooltip;
+    tooltip.style.opacity = "1";
+  }
 });
 
 document.addEventListener("mousemove", (e) => {
-    if (tooltip.style.opacity === "1") {
-        tooltip.style.left = e.clientX + 12 + "px";
-        tooltip.style.top = e.clientY + 12 + "px";
-    }
+  if (tooltip.style.opacity === "1") {
+    tooltip.style.left = e.clientX + 12 + "px";
+    tooltip.style.top = e.clientY + 12 + "px";
+  }
 });
 
 document.addEventListener("mouseout", (e) => {
-    if (e.target.classList.contains("word-added") ||
-        e.target.classList.contains("word-removed")) {
-        tooltip.style.opacity = "0";
-    }
+  if (
+    e.target.classList.contains("word-added") ||
+    e.target.classList.contains("word-removed")
+  ) {
+    tooltip.style.opacity = "0";
+  }
 });
 
 /* Back to top */
 const backToTop = document.getElementById("backToTop");
 function updateBackToTopVisibility() {
-    const hasVerticalScroll =
-        document.documentElement.scrollHeight >
-        document.documentElement.clientHeight;
+  const hasVerticalScroll =
+    document.documentElement.scrollHeight >
+    document.documentElement.clientHeight;
 
-    const userScrolledDown = window.scrollY > 200;
+  const userScrolledDown = window.scrollY > 200;
 
-    backToTop.style.display =
-        hasVerticalScroll && userScrolledDown ? "flex" : "none";
+  backToTop.style.display =
+    hasVerticalScroll && userScrolledDown ? "flex" : "none";
 }
 
 window.addEventListener("scroll", updateBackToTopVisibility);
 window.addEventListener("resize", updateBackToTopVisibility);
-backToTop.onclick = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
+backToTop.onclick = () => window.scrollTo({ top: 0, behavior: "smooth" });

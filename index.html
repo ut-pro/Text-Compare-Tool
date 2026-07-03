@@ -1,7 +1,6 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
+  <head>
     <meta charset="UTF-8" />
     <title>TextCompare+</title>
     <link rel="icon" type="image/png" href="./searchGlass.png" />
@@ -13,92 +12,130 @@
 
     <!-- diff-match-patch -->
     <script src="https://unpkg.com/diff-match-patch/index.js"></script>
-</head>
+  </head>
 
-<body>
+  <body>
     <main class="app-shell">
-        <section class="app-card">
-            <div class="sticky-note">
-                <span class="sticky-dot"></span>
-                Live Compare
+      <section class="app-card">
+        <div class="sticky-note">
+          <span class="sticky-dot"></span>
+          Live Compare
+        </div>
+        <header class="app-header">
+          <div class="app-title">
+            <h1 class="logo">
+              <span class="logo-icon">🔍</span>TextCompare<span
+                class="logo-plus"
+                >+</span
+              >
+            </h1>
+            <p class="subtitle">
+              Compare text changes instantly, with clarity.
+            </p>
+          </div>
+
+          <div class="header-options">
+            <label class="option-toggle">
+              <input type="checkbox" id="ignoreCaseCheckbox" />
+              Ignore Capitalization
+            </label>
+            <label class="option-toggle">
+              <input type="checkbox" id="ignoreLineBreaksCheckbox" />
+              Remove line breaks
+            </label>
+          </div>
+        </header>
+
+        <section class="input-grid">
+          <div>
+            <div class="field-row">
+              <label class="field-label">Text A</label>
+              <span class="counter-label" id="counterA"
+                >0 words · 0 characters</span
+              >
             </div>
-            <header class="app-header">
-                <div class="app-title">
-                    <h1 class="logo">
-                        <span class="logo-icon">🔍</span>TextCompare<span class="logo-plus">+</span>
-                    </h1>
-                    <p class="subtitle">Compare text changes instantly, with clarity.</p>
-                </div>
-            </header>
+            <textarea
+              id="textA"
+              placeholder="Paste original text here..."
+            ></textarea>
+          </div>
 
-            <section class="input-grid">
-                <div>
-                    <label class="field-label">Text A</label>
-                    <textarea id="textA" placeholder="Paste original text here..."></textarea>
-                </div>
-
-                <div>
-                    <label class="field-label">Text B</label>
-                    <textarea id="textB" placeholder="Paste modified text here..."></textarea>
-                </div>
-            </section>
-
-            <section id="outputContainer">
-                <div id="identicalMsg" hidden>
-                    ✨ Both texts are identical! No differences found.
-                </div>
-
-                <div id="diffStats" class="diff-stats" hidden>
-                    <span class="stat added">
-                        + <b id="addedCount">0</b> Added
-                    </span>
-                    <span class="stat removed">
-                        − <b id="removedCount">0</b> Removed
-                    </span>
-                </div>
-
-                <div class="diff-container" id="diffContainer">
-                    <div class="diff-column">
-                        <div class="diff-label">Text A</div>
-                        <div class="box" id="resultA"></div>
-                    </div>
-
-                    <div class="diff-column">
-                        <div class="diff-label">Text B</div>
-                        <div class="box" id="resultB"></div>
-                    </div>
-                </div>
-
-                <div id="diffLegend" class="diffLegend">
-                    <div class="legend-row">
-                        <span class="legend-item green">🟩 Green = Available in TextB only</span>
-                        <span class="legend-item muted green-light">🟩 Light Green = Not available in TextA</span>
-                    </div>
-
-                    <div class="legend-row">
-                        <span class="legend-item red">🟥 Red = Available in TextA only</span>
-                        <span class="legend-item muted red-light">🟥 Light Red = Not available in TextB</span>
-                    </div>
-                </div>
-            </section>
-
+          <div>
+            <div class="field-row">
+              <label class="field-label">Text B</label>
+              <span class="counter-label" id="counterB"
+                >0 words · 0 characters</span
+              >
+            </div>
+            <textarea
+              id="textB"
+              placeholder="Paste modified text here..."
+            ></textarea>
+          </div>
         </section>
+
+        <section id="outputContainer">
+          <div id="identicalMsg" hidden>
+            ✨ Both texts are identical! No differences found.
+          </div>
+
+          <div id="diffStats" class="diff-stats" hidden>
+            <span class="stat added"> + <b id="addedCount">0</b> Added </span>
+            <span class="stat removed">
+              − <b id="removedCount">0</b> Removed
+            </span>
+          </div>
+
+          <div class="diff-container" id="diffContainer">
+            <div class="diff-column">
+              <div class="diff-label">Text A</div>
+              <div class="box" id="resultA"></div>
+            </div>
+
+            <div class="diff-column">
+              <div class="diff-label">Text B</div>
+              <div class="box" id="resultB"></div>
+            </div>
+          </div>
+
+          <div id="diffLegend" class="diffLegend">
+            <div class="legend-row">
+              <span class="legend-item green"
+                >🟩 Green = Available in TextB only</span
+              >
+              <span class="legend-item muted green-light"
+                >🟩 Light Green = Not available in TextA</span
+              >
+            </div>
+
+            <div class="legend-row">
+              <span class="legend-item red"
+                >🟥 Red = Available in TextA only</span
+              >
+              <span class="legend-item muted red-light"
+                >🟥 Light Red = Not available in TextB</span
+              >
+            </div>
+          </div>
+        </section>
+      </section>
     </main>
 
     <div id="diffTooltip"></div>
 
     <button id="backToTop" aria-label="Back to top">
-        <svg viewBox="0 0 24 24" class="backtop-icon">
-            <path d="M12 5l-6 6a1.2 1.2 0 001.7 1.7L11 9.4V19a1 1 0 002 0V9.4l3.3 3.3a1.2 1.2 0 001.7-1.7z"
-                fill="currentColor" />
-        </svg>
+      <svg viewBox="0 0 24 24" class="backtop-icon">
+        <path
+          d="M12 5l-6 6a1.2 1.2 0 001.7 1.7L11 9.4V19a1 1 0 002 0V9.4l3.3 3.3a1.2 1.2 0 001.7-1.7z"
+          fill="currentColor"
+        />
+      </svg>
     </button>
 
     <footer class="footer">
-        This tool is created by <u>Utkarsh</u> just for fun 😄
+      This tool is created by <u>Utkarsh</u> just for fun 😄
     </footer>
 
     <script src="script.js"></script>
-</body>
-
+  </body>
 </html>
