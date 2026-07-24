@@ -18,6 +18,11 @@ const ignoreLineBreaksCheckbox = document.getElementById(
 const counterA = document.getElementById("counterA");
 const counterB = document.getElementById("counterB");
 
+/* ===== Plus button + Extras panel + Click-here nudge ===== */
+const plusButton = document.getElementById("plusButton");
+const plusNudge = document.getElementById("plusNudge");
+const extrasPanel = document.getElementById("extrasPanel");
+
 let hasAutoScrolled = false;
 let legentAnimation = false;
 
@@ -254,6 +259,38 @@ document.addEventListener("mouseout", (e) => {
     e.target.classList.contains("word-removed")
   ) {
     tooltip.style.opacity = "0";
+  }
+});
+
+function setExtrasOpen(open) {
+  document.body.classList.toggle("extras-open", open);
+  extrasPanel.hidden = !open;
+  plusButton.setAttribute("aria-expanded", open ? "true" : "false");
+}
+
+plusButton.addEventListener("click", (e) => {
+  e.stopPropagation();
+  setExtrasOpen(extrasPanel.hidden);
+});
+
+plusNudge.addEventListener("click", (e) => {
+  e.stopPropagation();
+  setExtrasOpen(true);
+});
+
+/* Close on click outside */
+document.addEventListener("click", (e) => {
+  if (extrasPanel.hidden) return;
+  if (extrasPanel.contains(e.target)) return;
+  if (plusButton.contains(e.target)) return;
+  setExtrasOpen(false);
+});
+
+/* Close on Esc, return focus to the + */
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !extrasPanel.hidden) {
+    setExtrasOpen(false);
+    plusButton.focus();
   }
 });
 

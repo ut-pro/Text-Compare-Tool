@@ -33,24 +33,37 @@
           <div class="app-title">
             <h1 class="logo">
               <span class="logo-icon">🔍</span>TextCompare<span
-                class="logo-plus"
-                >+</span
+                class="plus-wrap"
+                ><button
+                  type="button"
+                  class="logo-plus"
+                  id="plusButton"
+                  aria-label="Extra features"
+                  aria-expanded="false"
+                  aria-controls="extrasPanel"
+                >
+                  +
+                </button>
+                <button type="button" class="plus-nudge" id="plusNudge">
+                  <span>Click here</span>
+                  <span class="plus-nudge-tail" aria-hidden="true"></span>
+                </button>
+                <span class="extras-panel" id="extrasPanel" hidden>
+                  <span class="extras-title">Extra features</span>
+                  <label class="extras-option">
+                    <input type="checkbox" id="ignoreCaseCheckbox" />
+                    Ignore Capitalization
+                  </label>
+                  <label class="extras-option">
+                    <input type="checkbox" id="ignoreLineBreaksCheckbox" />
+                    Remove line breaks
+                  </label>
+                </span></span
               >
             </h1>
             <p class="subtitle">
               Compare text changes instantly, with clarity.
             </p>
-          </div>
-
-          <div class="header-options">
-            <label class="option-toggle">
-              <input type="checkbox" id="ignoreCaseCheckbox" />
-              Ignore Capitalization
-            </label>
-            <label class="option-toggle">
-              <input type="checkbox" id="ignoreLineBreaksCheckbox" />
-              Remove line breaks
-            </label>
           </div>
         </header>
 

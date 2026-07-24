@@ -28,8 +28,8 @@
 
   --green-text: #1f6f4d;
   --red-text: #8a2f3d;
-  --green-bg: rgba(31, 111, 77, 0.16);
-  --red-bg: rgba(138, 47, 61, 0.16);
+  --green-bg: rgba(31, 111, 77, 0.3);
+  --red-bg: rgba(138, 47, 61, 0.3);
 
   --font-ui: "Space Grotesk", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -73,7 +73,7 @@ body {
 
 .app-shell {
   max-width: 1180px;
-  margin: 0 auto;
+  margin: 30px auto 0 auto;
 }
 
 .app-card {
@@ -297,6 +297,156 @@ body {
 .logo-plus {
   color: var(--lavender);
   font-weight: 700;
+}
+
+/* ===== Plus button / Extras panel / Click-here nudge ===== */
+.plus-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+/* The + as a real button, looking identical to before */
+button.logo-plus {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: none;
+  padding: 0 4px;
+  margin: 0 -4px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease;
+}
+button.logo-plus:hover {
+  background: rgba(250, 240, 230, 0.12);
+  transform: translateY(-1px);
+}
+button.logo-plus:focus-visible {
+  outline: 2px solid var(--lavender);
+  outline-offset: 2px;
+}
+body.extras-open button.logo-plus {
+  background: rgba(250, 240, 230, 0.18);
+}
+
+/* "Click here" nudge — centered ABOVE the + */
+.plus-nudge {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--plum);
+  background: var(--cream);
+  border: 1px solid rgba(92, 84, 112, 0.35);
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(53, 47, 68, 0.4);
+  white-space: nowrap;
+  transform: translateX(-50%);
+  animation: nudgeBob 2.4s ease-in-out infinite;
+}
+.plus-nudge:hover {
+  background: var(--cream-deep);
+}
+.plus-nudge:focus-visible {
+  outline: 2px solid var(--lavender);
+  outline-offset: 2px;
+}
+
+/* Tail pointing straight down at the + */
+.plus-nudge-tail {
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  background: var(--cream);
+  border-right: 1px solid rgba(92, 84, 112, 0.35);
+  border-bottom: 1px solid rgba(92, 84, 112, 0.35);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+@keyframes nudgeBob {
+  0%,
+  100% {
+    transform: translate(-50%, 0) rotate(-1.5deg);
+  }
+  50% {
+    transform: translate(-50%, -6px) rotate(1.5deg);
+  }
+}
+
+body.extras-open .plus-nudge {
+  display: none;
+}
+
+/* Extras panel — directly BELOW the + */
+.extras-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: -8px;
+  z-index: 50;
+  display: block;
+  min-width: 230px;
+  padding: 14px 16px;
+  background: var(--card-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 28px rgba(53, 47, 68, 0.22);
+  animation: panelPop 0.16s ease-out;
+}
+.extras-panel[hidden] {
+  display: none;
+}
+
+.extras-title {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.extras-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--text-main);
+  padding: 6px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.extras-option:hover {
+  background: rgba(92, 84, 112, 0.08);
+}
+.extras-option input {
+  accent-color: var(--violet);
+  cursor: pointer;
+}
+
+@keyframes panelPop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .subtitle {
@@ -572,8 +722,8 @@ textarea::-webkit-scrollbar-track {
 
 .word-added.muted,
 .word-removed.muted {
-  opacity: 0.45;
-  filter: saturate(0.75);
+  opacity: 0.6;
+  filter: saturate(0.9);
   text-decoration: line-through;
 }
 
