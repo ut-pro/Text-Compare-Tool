@@ -15,6 +15,7 @@ const ignoreCaseCheckbox = document.getElementById("ignoreCaseCheckbox");
 const ignoreLineBreaksCheckbox = document.getElementById(
   "ignoreLineBreaksCheckbox",
 );
+const sortAlphaCheckbox = document.getElementById("sortAlphaCheckbox");
 const counterA = document.getElementById("counterA");
 const counterB = document.getElementById("counterB");
 
@@ -48,6 +49,17 @@ function updateCounter(el, text) {
 /* Collapse a line break (and surrounding horizontal whitespace) into a single space — comparison only */
 function normalizeLineBreaks(str) {
   return str.replace(/\s*(?:\r\n|\r|\n)+\s*/g, " ").trim();
+}
+
+/* Sort lines alphabetically (case-insensitive, locale-aware) — comparison only.
+   Order is decided from trimmed+lowercased text; the line's own content is kept as-is. */
+function sortLines(str) {
+  return str
+    .split("\n")
+    .sort((x, y) =>
+      x.trim().toLowerCase().localeCompare(y.trim().toLowerCase()),
+    )
+    .join("\n");
 }
 
 /* DMP diff → structured + COUNTS */
@@ -154,12 +166,18 @@ function compare() {
 
   const ignoreCase = ignoreCaseCheckbox.checked;
   const ignoreLineBreaks = ignoreLineBreaksCheckbox.checked;
+  const sortAlpha = sortAlphaCheckbox.checked;
 
   // Comparison-only normalization — textarea values (a, b) stay untouched
-  const normA = ignoreLineBreaks ? normalizeLineBreaks(a) : a;
-  const normB = ignoreLineBreaks ? normalizeLineBreaks(b) : b;
+  let normA = ignoreLineBreaks ? normalizeLineBreaks(a) : a;
+  let normB = ignoreLineBreaks ? normalizeLineBreaks(b) : b;
 
-  const isIdentical = ignoreCase
+  if (sortAlpha) {
+    normA = sortLines(normA);
+    normB = sortLines(normB);
+  }
+
+  let isIdentical = ignoreCase
     ? normA.trim().toLowerCase() === normB.trim().toLowerCase()
     : normA.trim() === normB.trim();
 
@@ -229,8 +247,8 @@ const counterMap = new Map([
   }),
 );
 
-[ignoreCaseCheckbox, ignoreLineBreaksCheckbox].forEach((el) =>
-  el.addEventListener("change", compare),
+[ignoreCaseCheckbox, ignoreLineBreaksCheckbox, sortAlphaCheckbox].forEach(
+  (el) => el.addEventListener("change", compare),
 );
 
 /* Tooltip logic */
@@ -293,6 +311,74 @@ document.addEventListener("keydown", (e) => {
     plusButton.focus();
   }
 });
+
+/* ===== Active-extras status chips (under the subtitle) ===== */
+const EXTRA_OPTIONS = [
+  {
+    id: "ignoreCaseCheckbox",
+    chip: "ignore caps",
+    full: "Ignore Capitalization",
+  },
+  {
+    id: "ignoreLineBreaksCheckbox",
+    chip: "remove line breaks",
+    full: "Remove line breaks",
+  },
+  {
+    id: "sortAlphaCheckbox",
+    chip: "sort A–Z",
+    full: "Sort lines alphabetically",
+  },
+];
+
+const activeExtras = document.getElementById("activeExtras");
+
+function renderActiveExtras() {
+  activeExtras.innerHTML = "";
+  const active = EXTRA_OPTIONS.filter(
+    (o) => document.getElementById(o.id).checked,
+  );
+
+  if (active.length === 0) {
+    activeExtras.hidden = true;
+    return;
+  }
+
+  activeExtras.hidden = false;
+
+  active.forEach((o, i) => {
+    if (i > 0) {
+      const sep = document.createElement("span");
+      sep.className = "active-extra-sep";
+      sep.setAttribute("aria-hidden", "true");
+      sep.textContent = "|";
+      activeExtras.appendChild(sep);
+    }
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "active-extra";
+    btn.textContent = o.chip;
+    btn.title = "Turn off: " + o.full; /* native hover tooltip = full label */
+    btn.setAttribute("aria-label", "Turn off " + o.full);
+    btn.addEventListener("click", () => {
+      const cb = document.getElementById(o.id);
+      cb.checked = false;
+      cb.dispatchEvent(
+        new Event("change"),
+      ); /* reuses the existing compare + render path */
+    });
+    activeExtras.appendChild(btn);
+  });
+}
+
+/* Re-render the chips whenever any toggle changes (panel or chip) */
+EXTRA_OPTIONS.forEach((o) => {
+  document.getElementById(o.id).addEventListener("change", renderActiveExtras);
+});
+
+/* Initial paint (empty → stays hidden) */
+renderActiveExtras();
 
 /* Back to top */
 const backToTop = document.getElementById("backToTop");
