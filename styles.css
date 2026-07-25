@@ -760,6 +760,23 @@ textarea::-webkit-scrollbar-track {
   transition: opacity 0.12s ease;
 }
 
+/* ===== Blank-line diffs (added / removed empty lines) ===== */
+.line-band {
+  display: inline-block;
+  width: 100%;
+  border-radius: 3px;
+  user-select: none;
+}
+.line-band.removed {
+  background: var(--red-bg);
+}
+.line-band.added {
+  background: var(--green-bg);
+}
+.line-band.muted {
+  opacity: 0.5; /* the side that does NOT actually have the blank line */
+}
+
 #backToTop {
   position: fixed;
   bottom: 90px;
@@ -815,6 +832,7 @@ textarea::-webkit-scrollbar-track {
   font-size: 0.78rem;
   padding: 9px;
   border-top: 1px solid rgba(0, 0, 0, 0.2);
+  z-index: 999;
 }
 
 .footer u {

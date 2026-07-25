@@ -134,6 +134,97 @@ function renderDiff(parts, perspective) {
     .join("");
 }
 
+/* Line-level alignment via LCS over "line keys" (case-aware).
+   Returns coarse ops: {type:"equal",a,b} | {type:"remove",a} | {type:"add",b} */
+function alignLines(linesA, linesB, options = {}) {
+  const { ignoreCase = false } = options;
+  const key = (s) => (ignoreCase ? s.toLowerCase() : s);
+  const ka = linesA.map(key);
+  const kb = linesB.map(key);
+  const n = ka.length;
+  const m = kb.length;
+
+  // LCS length table
+  const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] =
+        ka[i] === kb[j]
+          ? dp[i + 1][j + 1] + 1
+          : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+
+  // Backtrack into ops
+  const ops = [];
+  let i = 0;
+  let j = 0;
+  while (i < n && j < m) {
+    if (ka[i] === kb[j]) {
+      ops.push({ type: "equal", a: linesA[i], b: linesB[j] });
+      i++;
+      j++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      ops.push({ type: "remove", a: linesA[i] });
+      i++;
+    } else {
+      ops.push({ type: "add", b: linesB[j] });
+      j++;
+    }
+  }
+  while (i < n) ops.push({ type: "remove", a: linesA[i++] });
+  while (j < m) ops.push({ type: "add", b: linesB[j++] });
+  return ops;
+}
+
+/* Turn coarse ops into render rows. Adjacent remove/add blocks are zipped
+   into "modify" rows so edited lines still get word-level highlighting. */
+function refineRows(ops) {
+  const rows = [];
+  let p = 0;
+  const isBlank = (s) => s === "";
+
+  while (p < ops.length) {
+    const op = ops[p];
+    if (op.type === "equal") {
+      rows.push({ type: "equal", a: op.a, b: op.b });
+      p++;
+      continue;
+    }
+
+    const remNE = [],
+      remE = [],
+      addNE = [],
+      addE = [];
+    while (p < ops.length && ops[p].type !== "equal") {
+      if (ops[p].type === "remove")
+        (isBlank(ops[p].a) ? remE : remNE).push(ops[p].a);
+      else (isBlank(ops[p].b) ? addE : addNE).push(ops[p].b);
+      p++;
+    }
+
+    // 1) Edited content lines (word-level highlight later)
+    const k = Math.min(remNE.length, addNE.length);
+    for (let t = 0; t < k; t++)
+      rows.push({ type: "modify", a: remNE[t], b: addNE[t] });
+    for (let t = k; t < remNE.length; t++)
+      rows.push({ type: "remove", a: remNE[t] });
+    for (let t = k; t < addNE.length; t++)
+      rows.push({ type: "add", b: addNE[t] });
+
+    // 2) Spacing lines: blanks BOTH sides share → neutral gap;
+    //    leftover blanks on one side → a real spacing diff (add/remove),
+    //    which the renderer draws as a coloured band so the extra / missing
+    //    blank line is visible — just like a word change.
+    const ke = Math.min(remE.length, addE.length);
+    for (let t = 0; t < ke; t++) rows.push({ type: "equal", a: "", b: "" });
+    for (let t = ke; t < remE.length; t++) rows.push({ type: "remove", a: "" });
+    for (let t = ke; t < addE.length; t++) rows.push({ type: "add", b: "" });
+  }
+
+  return rows;
+}
+
 /* Main compare */
 function compare() {
   const a = textA.value;
@@ -189,27 +280,60 @@ function compare() {
     return;
   }
 
-  const linesA = normA.split("\n");
-  const linesB = normB.split("\n");
-  const max = Math.max(linesA.length, linesB.length);
+  // Empty text = zero lines (not one phantom blank line)
+  const linesA = normA === "" ? [] : normA.split("\n");
+  const linesB = normB === "" ? [] : normB.split("\n");
+
+  // Align first, then refine into render rows
+  const rows = refineRows(alignLines(linesA, linesB, { ignoreCase }));
 
   const outA = [];
   const outB = [];
-
   let totalAdded = 0;
   let totalRemoved = 0;
 
-  for (let i = 0; i < max; i++) {
-    const la = linesA[i] || "";
-    const lb = linesB[i] || "";
+  for (const row of rows) {
+    if (row.type === "equal") {
+      outA.push(escapeHtml(row.a));
+      outB.push(escapeHtml(row.b));
+      continue;
+    }
 
-    const diff = diffWithDMP(la, lb, { ignoreCase });
+    if (row.type === "modify") {
+      // edited line → reuse the existing word-level highlighter
+      const diff = diffWithDMP(row.a, row.b, { ignoreCase });
+      totalAdded += diff.added;
+      totalRemoved += diff.removed;
+      outA.push(renderDiff(diff.parts, "A"));
+      outB.push(renderDiff(diff.parts, "B"));
+      continue;
+    }
 
-    totalAdded += diff.added;
-    totalRemoved += diff.removed;
+    if (row.type === "remove") {
+      totalRemoved += 1;
+      if (row.a === "") {
+        // blank line only in A → solid red band on A, faint band on B
+        outA.push('<span class="line-band removed">&nbsp;</span>');
+        outB.push('<span class="line-band removed muted">&nbsp;</span>');
+      } else {
+        const part = { type: "removed", textA: escapeHtml(row.a), textB: "" };
+        outA.push(renderDiff([part], "A"));
+        outB.push(renderDiff([part], "B"));
+      }
+      continue;
+    }
 
-    outA.push(renderDiff(diff.parts, "A"));
-    outB.push(renderDiff(diff.parts, "B"));
+    // row.type === "add"
+    totalAdded += 1;
+    if (row.b === "") {
+      // blank line only in B → faint band on A, solid green band on B
+      outA.push('<span class="line-band added muted">&nbsp;</span>');
+      outB.push('<span class="line-band added">&nbsp;</span>');
+    } else {
+      const part = { type: "added", textA: "", textB: escapeHtml(row.b) };
+      outA.push(renderDiff([part], "A"));
+      outB.push(renderDiff([part], "B"));
+    }
   }
 
   resultA.innerHTML = outA.join("\n");
