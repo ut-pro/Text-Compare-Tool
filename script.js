@@ -371,10 +371,6 @@ const counterMap = new Map([
   }),
 );
 
-[ignoreCaseCheckbox, ignoreLineBreaksCheckbox, sortAlphaCheckbox].forEach(
-  (el) => el.addEventListener("change", compare),
-);
-
 /* Tooltip logic */
 const tooltip = document.getElementById("diffTooltip");
 
@@ -442,20 +438,56 @@ const EXTRA_OPTIONS = [
     id: "ignoreCaseCheckbox",
     chip: "ignore caps",
     full: "Ignore Capitalization",
+    group: null, // independent — never affected by exclusivity
   },
   {
     id: "ignoreLineBreaksCheckbox",
     chip: "remove line breaks",
     full: "Remove line breaks",
+    group: "lineShape", // mutually exclusive with sort
   },
   {
     id: "sortAlphaCheckbox",
     chip: "sort A–Z",
     full: "Sort lines alphabetically",
+    group: "lineShape", // mutually exclusive with remove-line-breaks
   },
 ];
 
 const activeExtras = document.getElementById("activeExtras");
+
+/* Given the id of a just-enabled option, uncheck any sibling in the same group. */
+function enforceExclusivity(justEnabledId) {
+  const enabled = EXTRA_OPTIONS.find((o) => o.id === justEnabledId);
+  if (!enabled || !enabled.group) return; // no group → nothing to enforce
+
+  EXTRA_OPTIONS.forEach((o) => {
+    if (o.id === justEnabledId) return;
+    if (o.group === enabled.group) {
+      document.getElementById(o.id).checked = false; // set directly, no re-dispatch
+    }
+  });
+}
+
+/* Single pipeline every toggle flows through (panel checkbox OR chip). */
+function handleExtraToggle(changedId) {
+  const cb = document.getElementById(changedId);
+
+  // Only enforce exclusivity when this option was just turned ON.
+  if (cb && cb.checked) {
+    enforceExclusivity(changedId);
+  }
+
+  renderActiveExtras(); // full rebuild — stale chips can't survive
+  compare(); // full recompute — transformations re-applied from scratch
+}
+
+/* One master change handler for all three checkboxes. */
+EXTRA_OPTIONS.forEach((o) => {
+  document
+    .getElementById(o.id)
+    .addEventListener("change", () => handleExtraToggle(o.id));
+});
 
 function renderActiveExtras() {
   activeExtras.innerHTML = "";
@@ -486,20 +518,12 @@ function renderActiveExtras() {
     btn.title = "Turn off: " + o.full; /* native hover tooltip = full label */
     btn.setAttribute("aria-label", "Turn off " + o.full);
     btn.addEventListener("click", () => {
-      const cb = document.getElementById(o.id);
-      cb.checked = false;
-      cb.dispatchEvent(
-        new Event("change"),
-      ); /* reuses the existing compare + render path */
+      document.getElementById(o.id).checked = false;
+      handleExtraToggle(o.id);
     });
     activeExtras.appendChild(btn);
   });
 }
-
-/* Re-render the chips whenever any toggle changes (panel or chip) */
-EXTRA_OPTIONS.forEach((o) => {
-  document.getElementById(o.id).addEventListener("change", renderActiveExtras);
-});
 
 /* Initial paint (empty → stays hidden) */
 renderActiveExtras();
